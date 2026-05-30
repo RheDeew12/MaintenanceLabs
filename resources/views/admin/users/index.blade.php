@@ -42,6 +42,7 @@
                     <th>NAMA PENGGUNA</th>
                     <th>EMAIL</th>
                     <th>ROLE / HAK AKSES</th>
+                    <th>UNIT / PRODI</th>
                     <th class="text-center">AKSI</th>
                 </tr>
             </thead>
@@ -54,9 +55,26 @@
                     </td>
                     <td>{{ $user->email }}</td>
                     <td>
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill small">
-                            {{ strtoupper($user->role) }}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill small text-uppercase">
+                            {{-- UPDATE: Tampilan Label Khusus Admin Rumah Tangga --}}
+                            @if($user->email == 'rumahtangga@politeknikatk.ac.id')
+                                Admin Rumah Tangga
+                            @else
+                                {{ $user->role }}
+                            @endif
                         </span>
+                    </td>
+                    <td>
+                        @if($user->role == 'Kepala Lab')
+                            <small class="text-muted d-block">Lab:</small>
+                            <span class="fw-medium text-dark">{{ $user->laboratorium->nama_lab ?? '-' }}</span>
+                        @elseif($user->role == 'Kaprodi')
+                            {{-- UPDATE: Pembeda Label Prodi/Umum --}}
+                            <small class="text-muted d-block">{{ $user->prodi?->nama_prodi == 'Umum' ? 'Unit Kerja:' : 'Prodi:' }}</small>
+                            <span class="fw-medium text-dark">{{ $user->prodi->nama_prodi ?? '-' }}</span>
+                        @else
+                            <span class="text-muted italic small">-</span>
+                        @endif
                     </td>
                     <td class="text-center">
                         <button class="btn btn-sm btn-light border rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalEdit{{ $user->id }}">
@@ -74,7 +92,7 @@
                     </td>
                 </tr>
 
-                {{-- MODAL EDIT USER (Ditempatkan di dalam loop agar ID sesuai) --}}
+                {{-- MODAL EDIT USER --}}
                 <div class="modal fade" id="modalEdit{{ $user->id }}" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content border-0 shadow">
@@ -97,18 +115,43 @@
                                         <label class="form-label small fw-bold">Password <small class="text-muted">(Kosongkan jika tidak diubah)</small></label>
                                         <input type="password" name="password" class="form-control bg-light border-0">
                                     </div>
-                                    <div class="mb-0">
+                                    <div class="mb-3">
                                         <label class="form-label small fw-bold">Role / Jabatan</label>
-                                        <select name="role" class="form-select bg-light border-0" required>
+                                        <select name="role" class="form-select bg-light border-0 role-select-edit" data-id="{{ $user->id }}" required>
                                             <option value="Super Admin" {{ $user->role == 'Super Admin' ? 'selected' : '' }}>Super Admin</option>
                                             <option value="Kepala Lab" {{ $user->role == 'Kepala Lab' ? 'selected' : '' }}>Kepala Lab</option>
                                             <option value="Tim Pemelihara" {{ $user->role == 'Tim Pemelihara' ? 'selected' : '' }}>Tim Pemelihara</option>
-                                            <option value="Kaprodi" {{ $user->role == 'Kaprodi' ? 'selected' : '' }}>Kaprodi</option>
+                                            <option value="Kaprodi" {{ $user->role == 'Kaprodi' ? 'selected' : '' }}>Kaprodi / Admin Rumah Tangga</option>
+                                            <option value="Pembantu Direktur 1" {{ $user->role == 'Pembantu Direktur 1' ? 'selected' : '' }}>Pembantu Direktur 1</option>
+                                            <option value="Pembantu Direktur 2" {{ $user->role == 'Pembantu Direktur 2' ? 'selected' : '' }}>Pembantu Direktur 2</option>
                                         </select>
+                                    </div>
+
+                                    {{-- Section Lab (Edit) --}}
+                                    <div id="sectionLabEdit{{ $user->id }}" class="mb-3 {{ $user->role == 'Kepala Lab' ? '' : 'd-none' }}">
+                                        <label class="form-label small fw-bold text-primary">Nama Lab / Workshop</label>
+                                        <select name="lab_id" class="form-select border-primary-subtle bg-light">
+                                            <option value="">-- Pilih Lab/Workshop --</option>
+                                            @foreach($laboratoriums as $lab)
+                                                <option value="{{ $lab->id }}" {{ $user->lab_id == $lab->id ? 'selected' : '' }}>{{ $lab->nama_lab }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    {{-- Section Prodi (Edit) --}}
+                                    <div id="sectionProdiEdit{{ $user->id }}" class="mb-3 {{ $user->role == 'Kaprodi' ? '' : 'd-none' }}">
+                                        <label class="form-label small fw-bold text-primary">Nama Prodi / Unit Kerja</label>
+                                        <select name="prodi_id" class="form-select border-primary-subtle bg-light">
+                                            <option value="">-- Pilih Prodi/Unit --</option>
+                                            @foreach($prodis as $prodi)
+                                                <option value="{{ $prodi->id }}" {{ $user->prodi_id == $prodi->id ? 'selected' : '' }}>{{ $prodi->nama_prodi }}</option>
+                                            @endforeach
+                                        </select>
+                                        <small class="text-muted">* Pilih "Umum" untuk Admin Rumah Tangga</small>
                                     </div>
                                 </div>
                                 <div class="modal-footer border-0 p-4 pt-0">
-                                    <button type="submit" class="btn btn-warning w-100 py-2 rounded-3 fw-bold">Simpan Perubahan</button>
+                                    <button type="submit" class="btn btn-warning w-100 py-2 rounded-3 fw-bold shadow-sm">Simpan Perubahan</button>
                                 </div>
                             </form>
                         </div>
@@ -116,7 +159,7 @@
                 </div>
                 @empty
                 <tr>
-                    <td colspan="4" class="text-center py-5 text-muted">
+                    <td colspan="5" class="text-center py-5 text-muted">
                         <i class="bi bi-search fs-1 d-block mb-3 opacity-25"></i>
                         Data pengguna tidak ditemukan.
                     </td>
@@ -133,7 +176,7 @@
 
 {{-- MODAL TAMBAH USER --}}
 <div class="modal fade" id="modalTambahUser" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <form action="{{ route('users.store') }}" method="POST">
                 @csrf
@@ -144,33 +187,97 @@
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Nama Lengkap</label>
-                        <input type="text" name="name" class="form-control bg-light border-0" required>
+                        <input type="text" name="name" class="form-control bg-light border-0" required placeholder="Masukkan nama lengkap">
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Email</label>
-                        <input type="email" name="email" class="form-control bg-light border-0" required>
+                        <input type="email" name="email" class="form-control bg-light border-0" required placeholder="nama@email.com">
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Password</label>
-                        <input type="password" name="password" class="form-control bg-light border-0" required>
+                        <input type="password" name="password" class="form-control bg-light border-0" required placeholder="******">
                     </div>
-                    <div class="mb-0">
+                    <div class="mb-3">
                         <label class="form-label small fw-bold">Role / Jabatan</label>
-                        <select name="role" class="form-select bg-light border-0" required>
+                        <select name="role" id="roleTambah" class="form-select bg-light border-0" required>
+                            <option value="">-- Pilih Role --</option>
                             <option value="Super Admin">Super Admin</option>
                             <option value="Kepala Lab">Kepala Lab</option>
                             <option value="Tim Pemelihara">Tim Pemelihara</option>
-                            <option value="Kaprodi">Kaprodi</option>
+                            <option value="Kaprodi">Admin Rumah Tangga</option>
                             <option value="Pembantu Direktur 1">Pembantu Direktur 1</option>
                             <option value="Pembantu Direktur 2">Pembantu Direktur 2</option>
                         </select>
                     </div>
+
+                    {{-- Input Dinamis Lab (Tambah) --}}
+                    <div id="sectionLabTambah" class="mb-3 d-none p-3 rounded-3 bg-primary-subtle border border-primary-subtle">
+                        <label class="form-label small fw-bold text-primary">Nama Lab / Workshop</label>
+                        <select name="lab_id" class="form-select border-0 shadow-sm">
+                            <option value="">-- Pilih Lab/Workshop --</option>
+                            @foreach($laboratoriums as $lab)
+                                <option value="{{ $lab->id }}">{{ $lab->nama_lab }}</option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted d-block mt-2">Daftar lab sinkron dengan Unit Management</small>
+                    </div>
+
+                    {{-- Input Dinamis Prodi (Tambah) --}}
+                    <div id="sectionProdiTambah" class="mb-3 d-none p-3 rounded-3 bg-primary-subtle border border-primary-subtle">
+                        <label class="form-label small fw-bold text-primary">Nama Prodi / Unit Kerja</label>
+                        <select name="prodi_id" class="form-select border-0 shadow-sm">
+                            <option value="">-- Pilih Prodi / Unit --</option>
+                            @foreach($prodis as $prodi)
+                                <option value="{{ $prodi->id }}">{{ $prodi->nama_prodi }}</option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted d-block mt-2">Pilih "Umum" untuk Admin Rumah Tangga</small>
+                    </div>
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0">
-                    <button type="submit" class="btn btn-primary w-100 py-2 rounded-3">Simpan Pengguna</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2 rounded-3 fw-bold shadow">Simpan Pengguna</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Logika untuk Modal Tambah
+    const roleTambah = document.getElementById('roleTambah');
+    const sectionLabTambah = document.getElementById('sectionLabTambah');
+    const sectionProdiTambah = document.getElementById('sectionProdiTambah');
+
+    roleTambah.addEventListener('change', function() {
+        sectionLabTambah.classList.add('d-none');
+        sectionProdiTambah.classList.add('d-none');
+        
+        if (this.value === 'Kepala Lab') {
+            sectionLabTambah.classList.remove('d-none');
+        } else if (this.value === 'Kaprodi') {
+            sectionProdiTambah.classList.remove('d-none');
+        }
+    });
+
+    // Logika untuk Modal Edit (Looping)
+    const editRoleSelectors = document.querySelectorAll('.role-select-edit');
+    editRoleSelectors.forEach(select => {
+        select.addEventListener('change', function() {
+            const userId = this.getAttribute('data-id');
+            const sectionLabEdit = document.getElementById('sectionLabEdit' + userId);
+            const sectionProdiEdit = document.getElementById('sectionProdiEdit' + userId);
+
+            sectionLabEdit.classList.add('d-none');
+            sectionProdiEdit.classList.add('d-none');
+
+            if (this.value === 'Kepala Lab') {
+                sectionLabEdit.classList.remove('d-none');
+            } else if (this.value === 'Kaprodi') {
+                sectionProdiEdit.classList.remove('d-none');
+            }
+        });
+    });
+});
+</script>
 @endsection

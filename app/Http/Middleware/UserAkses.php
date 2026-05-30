@@ -19,18 +19,26 @@ class UserAkses
             return redirect('/');
         }
 
-        // 2. Ambil role user yang sedang login
-        $userRole = Auth::user()->role;
+        // 2. Ambil data user yang sedang login
+        $user = Auth::user();
+        $userRole = $user->role;
+
+        // --- UPDATE TAMBAHAN: Logika Khusus Admin Rumah Tangga ---
+        // Jika halaman yang diminta membutuhkan akses 'Kaprodi', 
+        // tapi yang login adalah Admin Rumah Tangga (User dengan email RT),
+        // kita izinkan masuk karena mereka setara secara hak akses dashboard.
+        if (in_array('Kaprodi', $roles) && $user->email == 'rumahtangga@politeknikatk.ac.id') {
+            return $next($request);
+        }
+        // -------------------------------------------------------
 
         // 3. Cek apakah role user ada di dalam daftar parameter $roles
-        // Kita menggunakan array agar bisa menerima lebih dari satu role jika diperlukan
         if (in_array($userRole, $roles)) {
             return $next($request);
         }
 
-        // Jika user adalah Kaprodi tapi mencoba akses halaman Admin (atau sebaliknya)
-        // Kita arahkan ke halaman yang sesuai dengan rolenya untuk menghindari 404/403
-        if ($userRole == 'Kaprodi') {
+        // Jika user adalah Kaprodi / Admin Rumah Tangga tapi mencoba akses halaman Admin lain
+        if ($userRole == 'Kaprodi' || $user->email == 'rumahtangga@politeknikatk.ac.id') {
             return redirect()->route('kaprodi.dashboard');
         }
 

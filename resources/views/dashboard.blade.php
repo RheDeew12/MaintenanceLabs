@@ -3,345 +3,298 @@
 @section('title', 'Dashboard Perawatan')
 
 @section('content')
-<div class="container-fluid px-4 py-4">
-    {{-- BAGIAN PESAN NOTIFIKASI --}}
+<div class="container-fluid px-4 py-4" style="background-color: #f8fafc; min-height: 100vh;">
+    
+    {{-- Notifikasi System --}}
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4 border-0" role="alert">
-            <div class="d-flex align-items-center">
-                <i class="bi bi-check-circle-fill me-2 fs-4"></i>
-                <div><strong>Berhasil!</strong> {{ session('success') }}</div>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4 border-0" role="alert">
-            <div class="d-flex">
-                <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
-                <div>
-                    <strong>Mohon Maaf!</strong> Ada beberapa kesalahan:
-                    <ul class="mb-0 mt-1 small">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4 fade show d-flex align-items-center p-3" role="alert" style="background: #ecfdf5;">
+            <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+            <div class="text-success fw-medium">{{ session('success') }}</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
     {{-- Header Section --}}
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
-        <div>
-            <h3 class="fw-extrabold text-dark mb-1">Manajemen Perawatan</h3>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-muted small">Dashboard</a></li>
-                    <li class="breadcrumb-item active small" aria-current="page">Transaksi Perawatan</li>
-                </ol>
-            </nav>
+    <div class="row align-items-center mb-5">
+        <div class="col-md-7">
+            <h3 class="fw-bold text-dark mb-1">Manajemen Perawatan</h3>
+            <p class="text-muted small mb-0">Pemantauan dan pengajuan pemeliharaan fasilitas unit kerja.</p>
         </div>
-        @if(Auth::user()->role == 'Kepala Lab')
-            <button class="btn btn-primary rounded-4 px-4 py-2 shadow-sm d-flex align-items-center transition-all hover-lift" data-bs-toggle="modal" data-bs-target="#modalTambah">
-                <i class="bi bi-plus-lg me-2"></i>
-                <span class="fw-semibold">Buat Pengajuan</span>
-            </button>
-        @endif
-    </div>
-
-    {{-- Widget Ringkasan (KPI) --}}
-    @if(in_array(Auth::user()->role, ['Kaprodi', 'Super Admin']))
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm p-3 rounded-4 bg-primary text-white">
-                <small class="opacity-75 text-uppercase fw-bold" style="font-size: 10px;">Total Pengajuan</small>
-                <h3 class="mb-0 fw-bold">{{ $maintenances->total() }}</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm p-3 rounded-4 bg-warning text-white">
-                <small class="opacity-75 text-uppercase fw-bold" style="font-size: 10px;">Menunggu Verifikasi</small>
-                <h3 class="mb-0 fw-bold">{{ $maintenances->whereIn('status', ['pending_kaprodi', 'pending_pudir1', 'pending_pudir2'])->count() }}</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm p-3 rounded-4 bg-info text-white">
-                <small class="opacity-75 text-uppercase fw-bold" style="font-size: 10px;">Sedang Dikerjakan</small>
-                <h3 class="mb-0 fw-bold">{{ $maintenances->where('status', 'repairing')->count() }}</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm p-3 rounded-4 bg-success text-white">
-                <small class="opacity-75 text-uppercase fw-bold" style="font-size: 10px;">Selesai (Closed)</small>
-                <h3 class="mb-0 fw-bold">{{ $maintenances->where('status', 'closed')->count() }}</h3>
-            </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+            @if(Auth::user()->role == 'Kepala Lab')
+                <button class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold transition-all hover-lift" data-bs-toggle="modal" data-bs-target="#modalTambah">
+                    <i class="bi bi-plus-lg me-2"></i> Buat Pengajuan
+                </button>
+            @endif
         </div>
     </div>
-    @endif
 
-    {{-- Table Card --}}
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-header bg-white border-0 py-4 px-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0 text-dark">Riwayat Perawatan</h5>
-                <form action="{{ route('dashboard') }}" method="GET" class="d-flex align-items-center">
-                    <div class="input-group shadow-sm" style="width: 320px;">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                        <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Cari nama alat atau ID..." value="{{ request('search') }}">
+    {{-- Statistik KPI --}}
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-bottom border-primary border-4 transition-all hover-lift">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 bg-primary bg-opacity-10 p-3 rounded-3">
+                        <i class="bi bi-collection text-primary fs-4"></i>
                     </div>
-                </form>
+                    <div class="ms-3">
+                        <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 10px;">Total Ajuan</small>
+                        <h4 class="mb-0 fw-bold">{{ $maintenances->total() }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-bottom border-warning border-4 transition-all hover-lift">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 bg-warning bg-opacity-10 p-3 rounded-3">
+                        <i class="bi bi-hourglass-split text-warning fs-4"></i>
+                    </div>
+                    <div class="ms-3">
+                        <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 10px;">Pending</small>
+                        <h4 class="mb-0 fw-bold">{{ $maintenances->whereIn('status', ['pending_kaprodi', 'pending_pudir1', 'pending_pudir2'])->count() }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-bottom border-info border-4 transition-all hover-lift">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 bg-info bg-opacity-10 p-3 rounded-3">
+                        <i class="bi bi-tools text-info fs-4"></i>
+                    </div>
+                    <div class="ms-3">
+                        <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 10px;">Proses</small>
+                        <h4 class="mb-0 fw-bold">{{ $maintenances->where('status', 'repairing')->count() }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-bottom border-success border-4 transition-all hover-lift">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 bg-success bg-opacity-10 p-3 rounded-3">
+                        <i class="bi bi-check2-circle text-success fs-4"></i>
+                    </div>
+                    <div class="ms-3">
+                        <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 10px;">Selesai</small>
+                        <h4 class="mb-0 fw-bold">{{ $maintenances->where('status', 'closed')->count() }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Main Table Section --}}
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center border-bottom">
+            <h5 class="fw-bold mb-0 text-dark">Riwayat Perawatan Unit</h5>
+            <div class="badge bg-light text-primary border px-3 py-2 rounded-pill small">
+                <i class="bi bi-building me-1"></i> {{ Auth::user()->lab->nama_lab ?? 'Seluruh Unit' }}
             </div>
         </div>
         
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light-subtle border-bottom">
+                <thead style="background: #fcfcfd;">
                     <tr class="text-uppercase small fw-bold text-muted">
-                        <th class="ps-4">ID Tiket</th>
-                        <th>Alat & Lokasi</th>
-                        <th>Kategori</th>
-                        <th>Tgl Ajuan</th>
-                        <th>Metode</th>
-                        <th>Estimasi</th>
-                        <th>Status</th>
-                        <th class="text-center pe-4">Aksi</th>
+                        <th class="ps-4 py-3 border-0">ID Tiket</th>
+                        <th class="py-3 border-0">Informasi Alat</th>
+                        <th class="py-3 border-0 text-center">Tgl Ajuan</th>
+                        <th class="py-3 border-0">Status Progress</th>
+                        <th class="py-3 border-0 text-center pe-4">Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="border-top-0">
                     @forelse($maintenances as $item)
-                    <tr class="transition-all hover-bg-light">
+                    <tr>
                         <td class="ps-4">
-                            <div class="d-flex flex-column">
-                                <span class="text-primary fw-bold mb-0">#{{ $item->id_tiket ?? 'TIC-'.$item->id }}</span>
-                                <span class="text-muted font-monospace" style="font-size: 10px;">REF: {{ $item->equipment->kode_aset ?? 'N/A' }}</span>
+                            <span class="text-primary fw-bold">{{ $item->formatted_id }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ $item->barang->nama_barang ?? 'Alat Tidak Diketahui' }}</div>
+                            <div class="text-muted small font-monospace" style="font-size: 11px;">
+                                <i class="bi bi-hash me-1"></i>{{ $item->barang->kode_bmn ?? 'N/A' }}
                             </div>
                         </td>
-
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-sm me-3 bg-primary-subtle text-primary rounded-4 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-                                    <i class="bi bi-tools fs-5"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-bold text-dark lh-sm">{{ $item->equipment->nama_alat ?? 'Alat Tidak Diketahui' }}</div>
-                                    <div class="d-flex align-items-center mt-1 text-nowrap">
-                                        <span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-2 fw-medium border border-secondary-subtle me-2" style="font-size: 10px;">
-                                            {{ $item->equipment->klasifikasi_fungsi ?? 'Pendidikan' }}
-                                        </span>
-                                        <span class="text-primary small fw-semibold" style="font-size: 11px;">
-                                            <i class="bi bi-geo-alt-fill me-1"></i>{{ $item->equipment->lab->nama_lab ?? 'Lokasi Belum Diatur' }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                        <td class="text-center">
+                            <div class="text-dark small">{{ $item->created_at->format('d M Y') }}</div>
+                            <div class="text-muted" style="font-size: 10px;">{{ $item->created_at->format('H:i') }} WIB</div>
                         </td>
-
-                        <td>
-                            <span class="text-dark small fw-medium">
-                                <i class="bi bi-tag-fill text-muted me-1"></i>
-                                {{ $item->equipment->kategori->nama_kategori ?? 'Umum' }}
-                            </span>
-                        </td>
-
-                        <td><span class="fw-semibold text-dark small">{{ $item->created_at->format('d/m/Y') }}</span></td>
-
-                        <td>
-                            @php $isInternal = $item->repair_type == 'Internal'; @endphp
-                            <div class="d-inline-flex align-items-center px-3 py-1 rounded-pill border {{ $isInternal ? 'bg-info-subtle border-info-subtle text-info' : 'bg-dark-subtle border-dark-subtle text-dark' }}" style="font-size: 11px; font-weight: 600;">
-                                <i class="bi {{ $isInternal ? 'bi-person-workspace' : 'bi-truck' }} me-2"></i>
-                                {{ $isInternal ? 'MANDIRI' : 'VENDOR' }}
-                            </div>
-                        </td>
-
-                        <td><span class="text-dark fw-bold">{{ $item->estimated_cost ? 'Rp ' . number_format($item->estimated_cost, 0, ',', '.') : '—' }}</span></td>
-
                         <td>
                             @php
-                                $statusConfig = [
-                                    'pending_kaprodi' => ['class' => 'bg-primary-subtle text-primary', 'icon' => 'bi-hourglass-split'],
-                                    'pending_pudir1'  => ['class' => 'bg-info-subtle text-info', 'icon' => 'bi-clock-history'],
-                                    'pending_pudir2'  => ['class' => 'bg-warning-subtle text-warning', 'icon' => 'bi-shield-lock'],
-                                    'repairing'       => ['class' => 'bg-warning text-white shadow-sm', 'icon' => 'bi-gear-wide-connected'],
-                                    'waiting_verification' => ['class' => 'bg-info text-white', 'icon' => 'bi-eye'],
-                                    'closed'          => ['class' => 'bg-success text-white', 'icon' => 'bi-check-circle-fill'],
-                                    'rejected'        => ['class' => 'bg-danger text-white', 'icon' => 'bi-x-octagon-fill']
+                                $colorMap = [
+                                    'closed' => 'success',
+                                    'repairing' => 'info',
+                                    'rejected' => 'danger',
+                                    'pending_kaprodi' => 'warning',
+                                    'pending_pudir1' => 'warning',
+                                    'pending_pudir2' => 'warning',
                                 ];
-                                $current = $statusConfig[$item->status] ?? ['class' => 'bg-secondary-subtle text-muted', 'icon' => 'bi-dot'];
+                                $color = $colorMap[$item->status] ?? 'secondary';
                             @endphp
-                            <div class="badge {{ $current['class'] }} px-3 py-2 rounded-pill d-flex align-items-center border-0">
-                                <i class="{{ $current['icon'] }} me-2"></i>
-                                <span style="letter-spacing: 0.5px;">{{ str_replace('_', ' ', strtoupper($item->status)) }}</span>
+                            <div class="d-inline-flex align-items-center px-3 py-1 rounded-pill bg-{{ $color }} bg-opacity-10 text-{{ $color }} fw-bold" style="font-size: 9px; border: 1px solid rgba(var(--bs-{{ $color }}-rgb), 0.2);">
+                                <span class="me-1">●</span> {{ strtoupper(str_replace('_', ' ', $item->status)) }}
                             </div>
                         </td>
-
-                        <td class="text-center pe-4">@include('layouts.actions')</td>
+                        <td class="text-center pe-4">
+                            @include('layouts.actions')
+                        </td>
                     </tr>
                     @empty
-                    <tr><td colspan="8" class="text-center py-5 text-muted">Tidak ada riwayat perawatan yang ditemukan.</td></tr>
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="80" class="mb-3 opacity-25">
+                            <p class="text-muted small">Tidak ada riwayat perawatan untuk unit ini.</p>
+                        </td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="card-footer bg-white border-0 py-3 px-4">
-            {{ $maintenances->appends(['search' => request('search')])->links() }}
+        @if($maintenances->hasPages())
+        <div class="card-footer bg-white border-top py-3 px-4">
+            {{ $maintenances->links() }}
         </div>
+        @endif
     </div>
 </div>
 
-{{-- MODAL TAMBAH PENGAJUAN --}}
+{{-- MODAL TAMBAH PENGAJUAN (NEW SEARCH UI) --}}
 @if(Auth::user()->role == 'Kepala Lab')
 <div class="modal fade" id="modalTambah" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden bg-white">
             <form action="{{ route('maintenance.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf 
-                <div class="modal-header border-0 pt-4 px-4 bg-primary text-white">
-                    <h5 class="modal-title fw-bold">Form Pengajuan Perbaikan</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header border-0 p-4 pb-0 bg-white">
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark">Buat Pengajuan Perbaikan</h5>
+                        <p class="text-muted small mb-0">Lengkapi detail kerusakan alat unit kerja Anda.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    {{-- Pilih Alat --}}
-                    <div class="mb-4">
-                        <label class="form-label fw-bold small text-muted text-uppercase">Pilih Alat Laboratorium</label>
-                        <select name="equipment_id" id="selectAlat" class="form-select border-0 bg-light py-2 rounded-3 shadow-sm" required onchange="toggleManualInput()">
-                            <option value="" disabled selected>-- Pilih Alat Dari Master --</option>
-                            @foreach($equipments as $eq)
-                                <option value="{{ $eq->id }}" data-lab="{{ $eq->id_lab }}">[{{ $eq->kode_aset }}] {{ $eq->nama_alat }}</option>
-                            @endforeach
-                            <option value="manual" class="text-primary fw-bold">+ Alat Baru (Belum Terdaftar)</option>
-                        </select>
+                    {{-- Alert Unit Info --}}
+                    <div class="p-3 rounded-4 mb-4 d-flex align-items-center" style="background: #eff6ff; border: 1px solid #dbeafe;">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                            <i class="bi bi-info-circle text-primary fs-5"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block" style="font-size: 10px; font-weight: 700;">UNIT KERJA TERDETEKSI</small>
+                            <span class="text-primary fw-bold small">{{ Auth::user()->lab->nama_lab ?? 'Admin Unit' }}</span>
+                        </div>
                     </div>
 
-                    {{-- Lokasi Lab --}}
+                    {{-- CARI ALAT (INPUT AUTOCOMPLETE) --}}
                     <div class="mb-4">
-                        <label class="form-label fw-bold small text-muted text-uppercase">Lokasi Lab Saat Ini</label>
-                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                            <span class="input-group-text bg-light border-0"><i class="bi bi-geo-alt text-primary"></i></span>
-                            <select name="id_lab" id="id_lab_input" class="form-select border-0 bg-light border-start-0 py-2" required>
-                                <option value="" disabled selected>-- Pilih Lokasi Keberadaan Alat --</option>
-                                @foreach($labs as $lab)
-                                    <option value="{{ $lab->id }}">{{ $lab->nama_lab }}</option>
-                                @endforeach
-                            </select>
+                        <label class="form-label fw-bold small text-muted text-uppercase" style="letter-spacing: 0.5px;">Cari Alat (Ketik Nama / Kode BMN)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-2 border-end-0 rounded-start-3"><i class="bi bi-search text-muted"></i></span>
+                            <input list="listAlat" name="barang_display" id="cariAlat" class="form-control border-2 py-2 px-3 rounded-end-3 shadow-none" placeholder="Ketik Nama Alat atau Nomor BMN..." required autocomplete="off">
                         </div>
-                        <small class="text-muted" style="font-size: 10px;">Informasikan lokasi fisik alat saat ini untuk memudahkan tim teknis.</small>
-                    </div>
-
-                    {{-- Area Input Manual (Alat Baru) --}}
-                    <div id="inputManualArea" style="display: none;" class="p-3 border rounded-4 bg-light-subtle mb-4 slide-in shadow-sm">
-                        <h6 class="small fw-bold text-primary mb-3 text-uppercase"><i class="bi bi-plus-square me-2"></i>Detail Alat Baru</h6>
-                        <div class="mb-3">
-                            <input type="text" name="manual_name" id="manual_name" class="form-control border-0 shadow-sm" placeholder="Nama Alat">
-                        </div>
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <input type="text" name="manual_merk" id="manual_merk" class="form-control border-0 shadow-sm" placeholder="Merk/Tipe">
-                            </div>
-                            <div class="col-6">
-                                <input type="text" name="manual_code" id="manual_code" class="form-control border-0 shadow-sm" placeholder="Kode Aset (BMN)">
-                            </div>
-                        </div>
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <input type="number" name="tahun_perolehan" id="tahun_perolehan" class="form-control border-0 shadow-sm" placeholder="Thn Perolehan" min="1900" max="{{ date('Y') }}">
-                            </div>
-                            <div class="col-6">
-                                <select name="id_kategori" id="id_kategori" class="form-select border-0 shadow-sm small">
-                                    <option value="">-- Kategori --</option>
-                                    <option value="1">Mesin Berat</option>
-                                    <option value="2">Alat Gelas</option>
-                                    <option value="3">Elektronik</option>
-                                </select>
-                            </div>
-                        </div>
+                        <input type="hidden" name="barang_id" id="barang_id">
                         
-                        {{-- PENAMBAHAN KLASIFIKASI FUNGSI --}}
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Klasifikasi Fungsi</label>
-                            <select name="klasifikasi_fungsi" id="klasifikasi_fungsi" class="form-select border-0 shadow-sm small">
-                                <option value="Pendidikan">Pendidikan</option>
-                                <option value="Non-Pendidikan">Non-Pendidikan</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-0">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Foto Identifikasi Alat</label>
-                            <input type="file" name="foto_alat" id="foto_alat" class="form-control border-0 shadow-sm" accept="image/*">
-                        </div>
+                        <datalist id="listAlat">
+                            @foreach($barangs as $b)
+                                <option data-id="{{ $b->id }}" value="{{ $b->nama_barang }} [{{ $b->kode_bmn }}]">
+                            @endforeach
+                        </datalist>
+                        <small class="text-primary mt-1 d-block" style="font-size: 10px; display: none;" id="infoAlatTerpilih">
+                            <i class="bi bi-check-circle-fill"></i> Alat terverifikasi dalam sistem
+                        </small>
                     </div>
 
                     {{-- Tingkat Kerusakan --}}
                     <div class="mb-4">
-                        <label class="form-label fw-bold small text-muted text-uppercase">Tingkat Kerusakan</label>
-                        <div class="d-flex gap-2">
-                            <input type="radio" class="btn-check" name="damage_level" id="dmg-low" value="Ringan">
-                            <label class="btn btn-outline-success border-0 bg-light flex-grow-1 small py-2 rounded-3" for="dmg-low">Ringan</label>
-                            <input type="radio" class="btn-check" name="damage_level" id="dmg-med" value="Sedang" checked>
-                            <label class="btn btn-outline-warning border-0 bg-light flex-grow-1 small py-2 rounded-3" for="dmg-med">Sedang</label>
-                            <input type="radio" class="btn-check" name="damage_level" id="dmg-high" value="Berat">
-                            <label class="btn btn-outline-danger border-0 bg-light flex-grow-1 small py-2 rounded-3" for="dmg-high">Berat</label>
+                        <label class="form-label fw-bold small text-muted text-uppercase" style="letter-spacing: 0.5px;">Tingkat Kerusakan</label>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="damage_level" id="dmg-low" value="Ringan">
+                                <label class="btn btn-outline-success w-100 border-2 py-2 rounded-3 small fw-bold" for="dmg-low">Ringan</label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="damage_level" id="dmg-med" value="Sedang" checked>
+                                <label class="btn btn-outline-warning w-100 border-2 py-2 rounded-3 small fw-bold" for="dmg-med">Sedang</label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="damage_level" id="dmg-high" value="Berat">
+                                <label class="btn btn-outline-danger w-100 border-2 py-2 rounded-3 small fw-bold" for="dmg-high">Berat</label>
+                            </div>
                         </div>
                     </div>
 
-                    {{-- Deskripsi Masalah --}}
+                    {{-- Deskripsi Kerusakan --}}
                     <div class="mb-4">
-                        <label class="form-label fw-bold small text-muted text-uppercase">Deskripsi Gejala / Masalah</label>
-                        <textarea name="issue_description" class="form-control border-0 bg-light py-3 rounded-3 shadow-sm" rows="3" placeholder="Jelaskan detail kerusakan..." required></textarea>
+                        <label class="form-label fw-bold small text-muted text-uppercase" style="letter-spacing: 0.5px;">Deskripsi Gejala / Kerusakan</label>
+                        <textarea name="issue_description" class="form-control border-2 py-3 px-3 rounded-3 shadow-none" rows="3" placeholder="Contoh: Mesin macet dan tidak mengeluarkan suara..." required style="resize: none;"></textarea>
                     </div>
 
-                    {{-- Foto Kerusakan --}}
+                    {{-- Bukti Foto --}}
                     <div class="mb-0">
-                        <label class="form-label small fw-bold text-muted text-uppercase">Foto Kerusakan (Opsional)</label>
-                        <input type="file" name="foto_kerusakan" class="form-control border-0 shadow-sm" accept="image/*">
+                        <label class="form-label small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px;">Foto Bukti Visual</label>
+                        <input type="file" name="foto_kerusakan" class="form-control border-2 shadow-none py-2 rounded-3" accept="image/*">
+                        <small class="text-muted mt-1 d-block" style="font-size: 10px;">Format: JPG, PNG. Maks: 2MB.</small>
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0">
-                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-4 shadow-sm fw-bold">Kirim Pengajuan</button>
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-4 shadow fw-bold transition-all hover-lift">
+                        Kirim Laporan Perbaikan <i class="bi bi-send-fill ms-2"></i>
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+{{-- JAVASCRIPT UNTUK AUTO-MAPPING ID BARANG --}}
+<script>
+    document.getElementById('cariAlat').addEventListener('input', function(e) {
+        var input = e.target;
+        var list = document.getElementById('listAlat');
+        var hiddenInput = document.getElementById('barang_id');
+        var info = document.getElementById('infoAlatTerpilih');
+        var inputValue = input.value;
+        
+        hiddenInput.value = ""; 
+        info.style.display = "none";
+
+        for (var i = 0; i < list.options.length; i++) {
+            if (list.options[i].value === inputValue) {
+                hiddenInput.value = list.options[i].getAttribute('data-id');
+                info.style.display = "block";
+                break;
+            }
+        }
+    });
+</script>
 @endif
 
 <style>
-    body { background-color: #f8f9fa; font-family: 'Inter', sans-serif; }
-    .card { border-radius: 1rem; }
-    .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); border: none; }
-    .hover-lift:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; transition: all 0.3s; }
-    .hover-bg-light:hover { background-color: rgba(78, 115, 223, 0.03) !important; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    tr:hover .bi-gear-wide-connected { animation: spin 2s linear infinite; }
-    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-    .slide-in { animation: slideIn 0.3s ease-out; }
-</style>
-
-<script>
-    function toggleManualInput() {
-        const selectAlat = document.getElementById('selectAlat');
-        const manualArea = document.getElementById('inputManualArea');
-        const labInput = document.getElementById('id_lab_input');
-        const isManual = selectAlat.value === 'manual';
-        
-        manualArea.style.display = isManual ? 'block' : 'none';
-        
-        if(!isManual && selectAlat.value !== "") {
-            const selectedOption = selectAlat.options[selectAlat.selectedIndex];
-            const labId = selectedOption.getAttribute('data-lab');
-            if(labId) labInput.value = labId;
-        }
-
-        // UPDATE LIST FIELD MANUAL UNTUK REQUIREMENT
-        const manualFields = ['manual_name', 'manual_merk', 'manual_code', 'id_kategori', 'tahun_perolehan', 'klasifikasi_fungsi'];
-        manualFields.forEach(id => {
-            const el = document.getElementById(id);
-            if(el) {
-                if(isManual) el.setAttribute('required', 'required');
-                else { el.removeAttribute('required'); el.value = ''; }
-            }
-        });
+    .hover-lift:hover { transform: translateY(-3px); transition: 0.3s; }
+    .transition-all { transition: all 0.3s ease; }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
     }
-</script>
+
+    .btn-outline-warning:checked + label { color: #fff !important; background-color: #ffc107; border-color: #ffc107; }
+    .btn-outline-success:checked + label { color: #fff !important; background-color: #198754; border-color: #198754; }
+    .btn-outline-danger:checked + label { color: #fff !important; background-color: #dc3545; border-color: #dc3545; }
+
+    #cariAlat::placeholder { font-size: 13px; color: #cbd5e1; }
+    .input-group-text { border-right: none !important; }
+    #cariAlat { border-left: none !important; }
+</style>
 @endsection
+
+@if ($errors->any())
+    <div class="alert alert-danger rounded-4 small p-2">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif

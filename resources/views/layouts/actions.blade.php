@@ -12,11 +12,11 @@
             </form>
         @endif
 
-        {{-- TAHAP VERIFIKASI AKHIR: Verifikasi Fungsi Alat (Tahap 2 Closing) --}}
+        {{-- TAHAP VERIFIKASI AKHIR: Verifikasi Fungsi Alat --}}
         @if($item->status == 'waiting_verification') 
             <form action="{{ route('maintenance.verify', $item->id) }}" method="POST" class="d-inline">
                 @csrf
-                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" onclick="return confirm('Konfirmasi bahwa alat sudah dicek fisik dan berfungsi normal?')">
+                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" onclick="return confirm('Konfirmasi bahwa alat sudah dicek fisik and berfungsi normal?')">
                     <i class="bi bi-check-circle me-1"></i> Verifikasi & Terima
                 </button>
             </form>
@@ -26,7 +26,7 @@
         @endif
     @endif
 
-    {{-- 2. AKSES KAPRODI: Verifikasi Prioritas KBM --}}
+    {{-- 2. AKSES KAPRODI --}}
     @if(Auth::user()->role == 'Kaprodi' && $item->status == 'pending_kaprodi')
         <form action="{{ route('maintenance.approve', $item->id) }}" method="POST" class="d-inline">
             @csrf
@@ -39,7 +39,7 @@
         </button>
     @endif
 
-    {{-- 3. AKSES PUDIR 1 (Persetujuan Bidang Akademik) --}}
+    {{-- 3. AKSES PUDIR 1 --}}
     @if(Auth::user()->role == 'Pembantu Direktur 1' && $item->status == 'pending_pudir1')
         <form action="{{ route('maintenance.approve.pudir1', $item->id) }}" method="POST" class="d-inline">
             @csrf
@@ -49,7 +49,7 @@
         </form>
     @endif
 
-    {{-- 4. AKSES TIM PEMELIHARA (Inspeksi & Eksekusi) --}}
+    {{-- 4. AKSES TIM PEMELIHARA --}}
     @if(Auth::user()->role == 'Tim Pemelihara')
         @if($item->status == 'checking_technical')
             <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTechnical{{ $item->id }}">
@@ -67,7 +67,7 @@
         @endif
     @endif
 
-    {{-- 5. AKSES PUDIR 2 (Persetujuan Anggaran) --}}
+    {{-- 5. AKSES PUDIR 2 --}}
     @if(Auth::user()->role == 'Pembantu Direktur 2' && $item->status == 'pending_pudir2')
         <form action="{{ route('maintenance.approve.pudir2', $item->id) }}" method="POST" class="d-inline">
             @csrf
@@ -77,22 +77,34 @@
         </form>
     @endif
 
-    {{-- 6. AKSES SUPER ADMIN (Closing Final) --}}
-    @if(Auth::user()->role == 'Super Admin' && $item->status == 'ready_to_close') 
-        <form action="{{ route('maintenance.close', $item->id) }}" method="POST" class="d-inline">
+    {{-- 6. AKSES SUPER ADMIN --}}
+    @if(Auth::user()->role == 'Super Admin')
+        @if($item->status == 'ready_to_close') 
+            <form action="{{ route('maintenance.close', $item->id) }}" method="POST" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-dark rounded-pill px-3 shadow-sm" onclick="return confirm('Tutup tiket secara permanen?')">
+                    <i class="bi bi-lock-fill me-1"></i> Close Ticket
+                </button>
+            </form>
+        @endif
+
+        <form action="{{ route('maintenance.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('PERINGATAN: Menghapus tiket ini akan mengembalikan status alat menjadi Normal secara paksa. Lanjutkan?')">
             @csrf
-            <button type="submit" class="btn btn-sm btn-dark rounded-pill px-3 shadow-sm" onclick="return confirm('Tutup tiket secara permanen?')">
-                <i class="bi bi-lock-fill me-1"></i> Close Ticket
+            @method('DELETE')
+            <button type="submit" class="btn btn-sm btn-danger rounded-circle shadow-sm" title="Hapus Permanen (Super Admin)">
+                <i class="bi bi-trash3-fill"></i>
             </button>
         </form>
     @endif
 
-    {{-- Tombol Riwayat (Aktifkan rute yang sudah kita buat) --}}
-    <a href="{{ route('kaprodi.equipment.history', $item->equipment_id) }}" 
-    class="btn btn-sm btn-outline-primary rounded-circle shadow-sm" 
-    title="Riwayat Servis">
-        <i class="bi bi-clock-history"></i>
-    </a>
+    {{-- Tombol Riwayat --}}
+    @if($item->barang_id)
+        <a href="{{ route('kaprodi.equipment.history', $item->barang_id) }}" 
+        class="btn btn-sm btn-outline-primary rounded-circle shadow-sm" 
+        title="Riwayat Servis">
+            <i class="bi bi-clock-history"></i>
+        </a>
+    @endif
 
     {{-- Tombol Detail --}}
     <button class="btn btn-sm btn-light border rounded-circle shadow-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $item->id }}" title="Lihat Detail">
@@ -122,58 +134,53 @@
 
             <div class="modal-body p-0 bg-light">
                 <div class="row g-0">
-                    {{-- SISI KIRI --}}
+                    {{-- SISI KIRI: DATA ASET --}}
                     <div class="col-lg-4 border-end bg-white p-4">
                         <h6 class="text-uppercase small fw-bold text-muted mb-4">Informasi Aset</h6>
                         
                         <div class="position-relative mb-4">
-                            @if($item->equipment?->foto_alat)
-                                <img src="{{ asset('storage/' . $item->equipment->foto_alat) }}" class="img-fluid rounded-4 border shadow-sm" style="width: 100%; height: 220px; object-fit: cover;">
+                            @if($item->barang?->foto_identifikasi)
+                                <img src="{{ asset('uploads/barangs/' . $item->barang->foto_identifikasi) }}" class="img-fluid rounded-4 border shadow-sm" style="width: 100%; height: 220px; object-fit: cover;">
                             @else
                                 <div class="bg-light d-flex flex-column align-items-center justify-content-center rounded-4 border" style="height: 220px;">
                                     <i class="bi bi-image text-muted fs-1 mb-2"></i>
                                     <span class="text-muted small">Tanpa Foto Alat</span>
                                 </div>
                             @endif
-                            <div class="position-absolute bottom-0 end-0 m-2">
-                                <span class="badge bg-dark px-3 py-2 rounded-pill">Thn: {{ $item->equipment?->tahun_perolehan ?? '-' }}</span>
-                            </div>
                         </div>
 
                         <div class="card border-0 bg-primary bg-opacity-10 p-3 rounded-4 mb-4">
-                            <h5 class="fw-bold text-dark mb-1">{{ $item->equipment?->nama_alat ?? 'Aset Tidak Ditemukan' }}</h5>
-                            <span class="text-muted font-monospace small">BMN: {{ $item->equipment?->kode_aset ?? '-' }}</span>
+                            <h5 class="fw-bold text-dark mb-1">{{ $item->barang?->nama_barang ?? 'Aset Tidak Ditemukan' }}</h5>
+                            <span class="text-muted font-monospace small">BMN: {{ $item->barang?->kode_bmn ?? '-' }}</span>
                         </div>
 
                         <div class="p-3 rounded-4 border bg-white">
                             <div class="row g-3">
                                 <div class="col-6">
-                                    <label class="text-muted d-block small mb-1">Merk</label>
-                                    <span class="fw-bold text-dark small">{{ $item->equipment?->merk ?? '-' }}</span>
+                                    <label class="text-muted d-block small mb-1">Merk/Tipe</label>
+                                    <span class="fw-bold text-dark small">{{ $item->barang?->merk_tipe ?? '-' }}</span>
                                 </div>
                                 <div class="col-6">
-                                    <label class="text-muted d-block small mb-1">Klasifikasi</label>
-                                    <span class="fw-bold text-dark small">{{ $item->equipment?->klasifikasi_fungsi ?? 'Pendidikan' }}</span>
+                                    <label class="text-muted d-block small mb-1">Thn Perolehan</label>
+                                    <span class="fw-bold text-dark small">{{ $item->barang?->tahun_perolehan ?? '-' }}</span>
                                 </div>
                                 <div class="col-12 border-top pt-3">
-                                    <label class="text-muted d-block small mb-1">Lokasi Lab (Data Terkini)</label>
+                                    <label class="text-muted d-block small mb-1">Unit Kerja (Lokasi)</label>
                                     <span class="fw-bold text-primary small">
-                                        <i class="bi bi-geo-alt-fill me-1"></i>{{ $item->equipment?->lab?->nama_lab ?? 'Lab Belum Diatur' }}
+                                        <i class="bi bi-geo-alt-fill me-1 text-danger"></i>{{ $item->lab?->nama_lab ?? 'Unit N/A' }}
                                     </span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {{-- SISI KANAN --}}
+                    {{-- SISI KANAN: STATUS & ANALISIS --}}
                     <div class="col-lg-8 p-4">
                         <div class="row g-3 mb-4">
                             <div class="col-md-4">
-                                <div class="p-3 border rounded-4 bg-white shadow-sm h-100 border-start border-4 {{ $item->urgency == 'High' ? 'border-danger' : 'border-success' }}">
-                                    <small class="text-muted d-block mb-1">Prioritas</small>
-                                    <span class="fw-bold {{ $item->urgency == 'High' ? 'text-danger' : 'text-success' }}">
-                                        {{ strtoupper($item->urgency) }}
-                                    </span>
+                                <div class="p-3 border rounded-4 bg-white shadow-sm h-100 border-start border-4 border-danger">
+                                    <small class="text-muted d-block mb-1">Tingkat Kerusakan</small>
+                                    <span class="fw-bold text-danger">{{ $item->damage_level ?? 'Sedang' }}</span>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -187,32 +194,68 @@
                             <div class="col-md-4">
                                 <div class="p-3 border rounded-4 bg-white shadow-sm h-100 border-start border-4 border-dark">
                                     <small class="text-muted d-block mb-1">Status Tiket</small>
-                                    <span class="fw-bold text-dark small">{{ str_replace('_', ' ', strtoupper($item->status)) }}</span>
+                                    <span class="fw-bold text-dark small d-block mb-1">{{ str_replace('_', ' ', strtoupper($item->status)) }}</span>
+                                    <small class="text-muted d-block text-truncate" style="font-size: 11px;" title="Update: {{ $item->updated_at->format('d/m/Y H:i') }} WIB">
+                                        <i class="bi bi-clock me-1"></i>Up: {{ $item->updated_at->format('d/m/Y H:i') }} WIB
+                                    </small>
                                 </div>
                             </div>
                         </div>
 
+                        {{-- Laporan Kerusakan --}}
                         <div class="mb-4">
-                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-chat-left-text me-2 text-primary"></i>Deskripsi Masalah</h6>
+                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-chat-left-text me-2 text-primary"></i>Laporan Kerusakan</h6>
                             <div class="p-3 rounded-4 bg-white border">
-                                <p class="mb-0 text-muted fst-italic">"{{ $item->description ?? $item->issue_description }}"</p>
+                                <p class="mb-0 text-muted fst-italic">"{{ $item->issue_description }}"</p>
                             </div>
                         </div>
 
+                        {{-- Analisis Teknis --}}
                         @if($item->technical_recommendation)
                         <div class="mb-4">
-                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-clipboard-check me-2 text-info"></i>Analisis Teknis</h6>
+                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-clipboard-check me-2 text-info"></i>Analisis & Rekomendasi Teknis</h6>
                             <div class="p-3 rounded-4 bg-info bg-opacity-10 border border-info border-opacity-25">
-                                <p class="mb-0 text-dark small">{{ $item->technical_recommendation }}</p>
+                                <p class="mb-0 text-dark small"><strong>Rekomendasi:</strong> {{ $item->technical_recommendation }}</p>
+                                <p class="mb-0 text-dark small mt-2"><strong>Metode:</strong> {{ $item->repair_type }}</p>
                             </div>
                         </div>
                         @endif
-                        
-                        {{-- Foto Kerusakan (Jika ada) --}}
-                        @if($item->foto_kerusakan)
+
+                        {{-- INFO KEPUTUSAN PUDIR 2 --}}
+                        @if($item->status == 'rejected' || in_array($item->status, ['repairing', 'waiting_verification', 'closed', 'ready_to_close']))
                         <div class="mb-4">
-                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-camera me-2 text-primary"></i>Foto Kerusakan</h6>
-                            <img src="{{ asset('storage/' . $item->foto_kerusakan) }}" class="img-fluid rounded-4 border shadow-sm" style="max-height: 200px; object-fit: cover;">
+                            <h6 class="fw-bold text-dark mb-2">
+                                <i class="bi bi-person-check me-2 text-success"></i>Keputusan PUDIR 2 (Keuangan)
+                            </h6>
+                            <div class="p-3 rounded-4 {{ $item->status == 'rejected' ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success' }} border border-opacity-25">
+                                
+                                @if($item->status == 'rejected')
+                                    <small class="fw-bold text-danger text-uppercase d-block mb-1" style="font-size: 10px;">Alasan Penolakan:</small>
+                                    <p class="mb-0 text-dark">
+                                        @if($item->pudir2_note)
+                                            "{{ $item->pudir2_note }}"
+                                        @else
+                                            <span class="text-muted fst-italic">"Ditolak tanpa alasan tertulis."</span>
+                                        @endif
+                                    </p>
+                                @else
+                                    <small class="fw-bold text-success text-uppercase d-block mb-1" style="font-size: 10px;">Instruksi Persetujuan:</small>
+                                    <p class="mb-0 text-dark">
+                                        @if($item->pudir2_note)
+                                            "{{ $item->pudir2_note }}"
+                                        @else
+                                            <span class="text-muted fst-italic">"Disetujui tanpa catatan tambahan."</span>
+                                        @endif
+                                    </p>
+                                @endif
+                            </div>
+                        </div>
+                        @endif
+
+                        @if($item->foto_kerusakan)
+                        <div class="mb-0">
+                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-camera me-2 text-primary"></i>Bukti Visual Kerusakan</h6>
+                            <img src="{{ asset('storage/' . $item->foto_kerusakan) }}" class="img-fluid rounded-4 border shadow-sm" style="max-height: 250px; object-fit: cover;">
                         </div>
                         @endif
                     </div>
@@ -220,7 +263,7 @@
             </div>
             
             <div class="modal-footer bg-white border-top p-4 d-flex justify-content-between">
-                <div class="text-muted small">UID: {{ $item->id }}</div>
+                <div class="text-muted small">ID Pengajuan: {{ $item->id }}</div>
                 <button type="button" class="btn btn-light px-4 rounded-pill fw-bold" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>

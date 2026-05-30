@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Prodi; 
+use App\Models\Laboratorium; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 class UserController extends Controller
 {
     /**
-     * Menampilkan daftar pengguna dengan fitur pencarian dan paginasi.
+     * Menampilkan daftar pengguna dengan data pendukung dari tabel laboratoriums.
      */
     public function index(Request $request) 
     {
@@ -24,12 +26,16 @@ class UserController extends Controller
         ->latest()
         ->paginate(10);
 
-        return view('admin.users.index', compact('users'));
+        // Ambil data pendukung langsung dari tabel laboratoriums
+        $laboratoriums = Laboratorium::all(); 
+        $prodis = Prodi::all(); 
+
+        return view('admin.users.index', compact('users', 'laboratoriums', 'prodis'));
     }
 
     /**
-     * Menyimpan pengguna baru ke database.
-     * UPDATE: Menambahkan prodi_id otomatis jika tidak diisi.
+     * Menyimpan pengguna baru.
+     * UPDATE: Penambahan logika pencarian prodi_id otomatis untuk Kepala Lab.
      */
     public function store(Request $request) 
     {
@@ -38,16 +44,33 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
             'role' => 'required',
-            'prodi_id' => 'nullable|integer' // Validasi opsional untuk prodi_id
+            // Validasi prodi_id wajib jika Kaprodi, lab_id wajib jika Kepala Lab
+            'prodi_id' => $request->role === 'Kaprodi' ? 'required|integer' : 'nullable',
+            'lab_id' => $request->role === 'Kepala Lab' ? 'required|integer' : 'nullable'
         ]);
+
+        $prodi_id = $request->prodi_id;
+
+        // FIX: Jika role adalah Kepala Lab, ambil prodi_id dari relasi Laboratoriumnya
+        if ($request->role === 'Kepala Lab' && $request->filled('lab_id')) {
+            $lab = Laboratorium::find($request->lab_id);
+            if ($lab) {
+                $prodi_id = $lab->prodi_id;
+            }
+        }
+
+        // Fallback untuk role yang tidak terikat prodi spesifik agar tidak NULL (misal Super Admin)
+        if (is_null($prodi_id)) {
+            $prodi_id = 1; // Sesuaikan dengan ID default prodi di DB Anda
+        }
 
         User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
-            // PERBAIKAN: Jika input prodi_id kosong, otomatis set ke 1
-            'prodi_id' => $request->prodi_id ?? 1, 
+            'prodi_id' => $prodi_id,
+            'lab_id' => $request->role === 'Kepala Lab' ? $request->lab_id : null, 
         ]);
 
         return back()->with('success', 'User berhasil ditambahkan.');
@@ -55,6 +78,7 @@ class UserController extends Controller
 
     /**
      * Memperbarui data pengguna.
+     * UPDATE: Penambahan sinkronisasi prodi_id saat update lab_id.
      */
     public function update(Request $request, $id) 
     {
@@ -64,11 +88,29 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
             'role' => 'required',
-            'prodi_id' => 'nullable|integer'
+            'prodi_id' => $request->role === 'Kaprodi' ? 'required' : 'nullable',
         ]);
 
-        // Gunakan request->all() atau sebutkan prodi_id agar bisa diperbarui
-        $user->update($request->only(['name', 'email', 'role', 'prodi_id']));
+        $updateData = $request->only(['name', 'email', 'role']);
+
+        // Logika penentuan Lab dan Prodi untuk menghindari error NULL pada database
+        if ($request->role === 'Kepala Lab') {
+            $updateData['lab_id'] = $request->lab_id;
+            
+            // FIX: Sinkronkan kembali prodi_id jika lab diubah
+            $lab = Laboratorium::find($request->lab_id);
+            $updateData['prodi_id'] = $lab ? $lab->prodi_id : ($request->prodi_id ?? $user->prodi_id);
+            
+        } elseif ($request->role === 'Kaprodi') {
+            $updateData['prodi_id'] = $request->prodi_id;
+            $updateData['lab_id'] = null;
+        } else {
+            // Untuk Super Admin, Pudir, dll (tetap jaga agar prodi_id tidak NULL)
+            $updateData['lab_id'] = null;
+            $updateData['prodi_id'] = $request->prodi_id ?? $user->prodi_id ?? 1;
+        }
+
+        $user->update($updateData);
         
         if ($request->filled('password')) {
             $user->update(['password' => Hash::make($request->password)]);
@@ -78,13 +120,13 @@ class UserController extends Controller
     }
 
     /**
-     * Menghapus pengguna (dengan proteksi diri sendiri).
+     * Menghapus pengguna.
      */
     public function destroy($id) 
     {
         $user = User::findOrFail($id);
         
-        if ($user->is(Auth::user())) {
+        if ($user->id === Auth::id()) {
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
 

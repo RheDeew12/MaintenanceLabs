@@ -1,82 +1,106 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="container-fluid py-4">
-    <div class="d-flex align-items-center justify-content-between mb-4">
+<div class="container-fluid py-4" style="background-color: #f1f5f9; min-height: 100vh;">
+    
+    {{-- Header Section: Focused on Partnership & Evaluation --}}
+    <div class="d-flex align-items-center justify-content-between mb-5">
         <div>
-            <h3 class="text-white fw-bold mb-1">Performa Vendor & Pihak Luar</h3>
-            <p class="text-white-50 small mb-0">Evaluasi biaya dan efektivitas mitra pemeliharaan eksternal</p>
+            <h2 class="fw-extrabold text-slate-800 mb-1" style="letter-spacing: -0.5px;">Performa Vendor & Pihak Luar</h2>
+            <p class="text-slate-500 small mb-0">Evaluasi efektivitas biaya dan kualitas pengerjaan dari mitra pemeliharaan eksternal.</p>
         </div>
-        <div class="bg-glass text-white px-3 py-2 rounded-pill small">
-            <i class="fas fa-handshake me-2"></i> Total Riwayat: {{ $completedMaintenance->total() }}
+        <div class="d-flex gap-3">
+            <div class="bg-indigo-600 text-white px-4 py-2 rounded-4 shadow-sm d-flex align-items-center transition-all hover-lift">
+                <i class="bi bi-handshake me-2"></i>
+                <span class="small fw-bold">Total Riwayat: {{ $vendorRepairs->total() }}</span>
+            </div>
         </div>
     </div>
 
-    <div class="card shadow border-0 rounded-4 overflow-hidden">
-        <div class="card-header bg-white border-0 pt-4 px-4">
-            <h6 class="fw-bold text-dark mb-0">
-                <i class="fas fa-list-ul me-2 text-primary"></i>Daftar Transaksi Pemeliharaan Eksternal
-            </h6>
+    {{-- Summary Table Area --}}
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="card-header bg-white p-4 border-0 d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold text-slate-800 mb-0"><i class="bi bi-list-stars me-2 text-primary"></i>Log Transaksi Pemeliharaan Eksternal</h5>
+            <span class="badge bg-slate-100 text-slate-600 rounded-pill px-3 py-2 border small fw-medium">
+                Penyedia Jasa Pihak Ketiga
+            </span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-muted small text-uppercase">
-                        <tr>
-                            <th class="ps-4">Alat & Kode Aset</th>
-                            <th>Partner / Vendor</th>
-                            <th>Total Biaya</th>
-                            <th class="text-center">Status Akhir</th>
-                            <th class="text-center">Aksi</th>
+                    <thead class="bg-slate-50 border-top">
+                        <tr class="text-slate-400 small fw-bold text-uppercase" style="letter-spacing: 1px;">
+                            <th class="ps-4 py-3 border-0">Aset & Kode BMN</th>
+                            <th class="border-0">Partner / Vendor</th>
+                            <th class="border-0">Total Biaya Realisasi</th>
+                            <th class="text-center border-0">Status Tiket</th>
+                            <th class="text-center pe-4 border-0">Dokumentasi</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @forelse($completedMaintenance as $item)
+                    <tbody class="border-top-0">
+                        @forelse($vendorRepairs as $item)
                         <tr>
-                            <td class="ps-4">
+                            <td class="ps-4 py-4">
                                 <div class="d-flex align-items-center">
-                                    <div class="icon-shape bg-primary-subtle text-primary rounded-3 me-3">
-                                        <i class="fas fa-tools"></i>
+                                    <div class="rounded-3 p-2 me-3 d-flex align-items-center justify-content-center bg-indigo-100 text-indigo-600" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-cpu"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-bold text-dark">{{ $item->equipment->nama_alat }}</div>
-                                        <small class="text-muted text-xs">{{ $item->equipment->kode_aset ?? 'Tanpa Kode' }}</small>
+                                        <div class="fw-bold text-slate-800">{{ $item->barang?->nama_barang ?? 'Unknown Asset' }}</div>
+                                        <div class="text-slate-400 small font-monospace" style="font-size: 10px;">{{ $item->barang?->kode_bmn ?? 'SN-UNKNOWN' }}</div>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <div class="fw-bold text-dark">{{ $item->nama_vendor ?? 'Vendor Eksternal' }}</div>
-                                <span class="badge bg-light text-muted rounded-pill border x-small">Pihak Ketiga</span>
+                                <div class="fw-bold text-slate-700">{{ $item->nama_vendor ?? 'Vendor Pihak Ketiga' }}</div>
+                                <div class="d-flex align-items-center mt-1">
+                                    <span class="badge bg-amber-100 text-amber-700 px-2 py-1 rounded-pill" style="font-size: 9px;">MITRA LUAR</span>
+                                </div>
                             </td>
                             <td>
-                                <div class="text-dark fw-bold">Rp {{ number_format($item->estimated_cost ?? $item->estimasi_biaya, 0, ',', '.') }}</div>
-                                <small class="text-success text-xs"><i class="fas fa-check-circle me-1"></i>Telah Direalisasi</small>
+                                <div class="text-slate-800 fw-extrabold fs-6">
+                                    Rp {{ number_format($item->estimated_cost, 0, ',', '.') }}
+                                </div>
+                                <small class="text-success fw-bold" style="font-size: 10px;">
+                                    <i class="bi bi-check-circle-fill me-1"></i>PAID / REALIZED
+                                </small>
                             </td>
                             <td class="text-center">
                                 @php
-                                    $statusClass = [
-                                        'closed' => 'success',
-                                        'repairing' => 'warning',
-                                        'waiting_verification' => 'info'
-                                    ][$item->status] ?? 'secondary';
+                                    $st = match($item->status) {
+                                        'closed' => ['c' => '#10b981', 'bg' => '#10b98115', 'l' => 'SELESAI'],
+                                        'repairing' => ['c' => '#3b82f6', 'bg' => '#3b82f615', 'l' => 'PROSES'],
+                                        default => ['c' => '#64748b', 'bg' => '#64748b15', 'l' => strtoupper($item->status)]
+                                    };
                                 @endphp
-                                <span class="badge bg-{{ $statusClass }}-subtle text-{{ $statusClass }} border border-{{ $statusClass }}-subtle px-3 py-2 rounded-pill">
-                                    <i class="fas fa-circle me-1 small"></i> {{ strtoupper($item->status) }}
+                                <span class="badge px-3 py-2 rounded-pill fw-bold" 
+                                      style="background: {{ $st['bg'] }}; color: {{ $st['c'] }}; border: 1px solid {{ $st['c'] }}30; font-size: 10px;">
+                                    {{ $st['l'] }}
                                 </span>
                             </td>
-                            <td class="text-center">
-                                <a href="{{ route('maintenance.print', $item->id) }}" target="_blank" class="btn btn-sm btn-light rounded-circle shadow-sm" title="Cetak Kwitansi/Tiket">
-                                    <i class="fas fa-print text-primary"></i>
-                                </a>
+                            <td class="text-center pe-4">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="{{ route('maintenance.print', $item->id) }}" target="_blank" 
+                                       class="btn btn-white border rounded-3 p-2 shadow-sm transition-all hover-lift" 
+                                       title="Cetak Faktur">
+                                        <i class="bi bi-printer text-primary"></i>
+                                    </a>
+                                    <a href="{{ route('dashboard') }}" 
+                                       class="btn btn-white border rounded-3 p-2 shadow-sm transition-all hover-lift" 
+                                       title="Detail Pekerjaan">
+                                        <i class="bi bi-eye text-slate-400"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5">
-                                <div class="opacity-25 mb-3">
-                                    <i class="fas fa-file-invoice-dollar fa-4x"></i>
+                            <td colspan="5" class="text-center py-5 bg-light bg-opacity-50">
+                                <div class="bg-white rounded-circle d-inline-flex p-4 mb-3 shadow-sm">
+                                    <i class="bi bi-truck-flatbed fs-1 text-slate-200"></i>
                                 </div>
-                                <p class="text-muted">Belum ada data perbaikan vendor yang tercatat.</p>
+                                <h6 class="fw-bold text-slate-800">Tidak Ada Data Vendor</h6>
+                                <p class="text-slate-400 small">Belum ada riwayat perbaikan oleh pihak ketiga yang tercatat di sistem.</p>
                             </td>
                         </tr>
                         @endforelse
@@ -84,20 +108,35 @@
                 </table>
             </div>
         </div>
-        {{-- Link Paginasi --}}
-        @if($completedMaintenance->hasPages())
-        <div class="card-footer bg-white border-0 py-3">
-            {{ $completedMaintenance->withQueryString()->links() }}
+        
+        {{-- Custom Pagination Styling --}}
+        @if($vendorRepairs->hasPages())
+        <div class="card-footer bg-white border-top p-4">
+            <div class="d-flex justify-content-center">
+                {{ $vendorRepairs->links() }}
+            </div>
         </div>
         @endif
     </div>
 </div>
 
 <style>
-    .bg-glass { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
-    .icon-shape { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-    .x-small { font-size: 0.7rem; }
-    .text-xs { font-size: 0.75rem; }
-    .table tbody td { padding-top: 1rem; padding-bottom: 1rem; }
+    .fw-extrabold { font-weight: 800; }
+    .text-slate-800 { color: #1e293b; }
+    .text-slate-700 { color: #334155; }
+    .text-slate-600 { color: #475569; }
+    .text-slate-500 { color: #64748b; }
+    .text-slate-400 { color: #94a3b8; }
+    .bg-slate-50 { background-color: #f8fafc; }
+    .bg-indigo-100 { background-color: #e0e7ff; }
+    .text-indigo-600 { color: #4f46e5; }
+    .bg-amber-100 { background-color: #fef3c7; }
+    .text-amber-700 { color: #b45309; }
+    
+    .hover-lift:hover { transform: translateY(-3px); }
+    .transition-all { transition: all 0.3s cubic-bezier(.4,0,.2,1); }
+    
+    .table thead th { font-weight: 700; letter-spacing: 0.5px; border-bottom: none; }
+    .table tbody td { border-bottom: 1px solid #f1f5f9; }
 </style>
 @endsection

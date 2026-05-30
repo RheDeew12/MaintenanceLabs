@@ -11,10 +11,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Memanggil seeder user agar data akun otomatis terisi
-        $this->call([
-            DummyUsersSeeder::class,
-            // Anda bisa menambah EquipmentSeeder::class di sini nanti
+        /**
+         * PENTING: Urutan pemanggilan harus sesuai dengan dependensi Foreign Key.
+         * 1. LaboratoriumSeeder: Mengisi ID 1-17 agar tersedia di tabel laboratoriums.
+         * 2. DummyUsersSeeder: Membuat user yang merujuk ke ID lab tersebut.
+         */
+    $this->call([
+            ProdiSeeder::class,        // Jalankan Pertama
+            LaboratoriumSeeder::class, // Jalankan Kedua
+            DummyUsersSeeder::class,   // Jalankan Ketiga
+            BarangSeeder::class,
         ]);
     }
 }

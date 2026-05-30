@@ -15,6 +15,7 @@ class Laboratorium extends Model
 
     /**
      * Relasi ke model Prodi
+     * Laboratorium berada di bawah naungan Program Studi (TPK, TPPK, atau TPKP)
      */
     public function prodi(): BelongsTo
     {
@@ -22,20 +23,31 @@ class Laboratorium extends Model
     }
 
     /**
-     * PERBAIKAN UTAMA: Mengganti 'lab_id' menjadi 'id_lab'
-     * Nama fungsi tetap 'equipment' agar sinkron dengan withCount di AdminController
+     * RELASI UTAMA: Menghubungkan ke Model Barang
+     * Menggunakan 'id_lab' sebagai Foreign Key sesuai struktur tabel barangs.
+     * Fungsi ini dinamai 'barangs' agar standar Laravel (Plural).
      */
-    public function equipment(): HasMany
+    public function barangs(): HasMany
     {
-        // Parameter kedua HARUS 'id_lab' sesuai struktur tabel equipment Anda
-        return $this->hasMany(Equipment::class, 'id_lab');
+        return $this->hasMany(Barang::class, 'id_lab');
     }
 
     /**
-     * Versi plural (opsional), juga dipastikan menggunakan kunci 'id_lab'
+     * ALIAS RELASI (Legacy Support):
+     * Fungsi ini tetap disediakan dengan nama 'barang' agar withCount(['barang']) 
+     * di AdminController tetap berjalan tanpa perlu mengubah banyak kode.
      */
-    public function equipments(): HasMany
+    public function barang(): HasMany
     {
-        return $this->hasMany(Equipment::class, 'id_lab');
+        return $this->hasMany(Barang::class, 'id_lab');
+    }
+
+    /**
+     * Relasi ke MaintenanceRequest
+     * Untuk melihat seluruh riwayat perbaikan yang terjadi di unit ini.
+     */
+    public function maintenanceRequests(): HasMany
+    {
+        return $this->hasMany(MaintenanceRequest::class, 'id_lab');
     }
 }

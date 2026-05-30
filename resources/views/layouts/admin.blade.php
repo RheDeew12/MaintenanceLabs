@@ -32,45 +32,18 @@
             letter-spacing: -0.02em;
         }
 
-        /* --- SIDEBAR CUSTOM --- */
-        .sidebar { 
-            width: var(--sidebar-width);
-            height: 100vh; 
-            background: var(--atk-navy); 
-            position: fixed;
-            left: 0; top: 0; z-index: 1030;
-            box-shadow: 4px 0 24px rgba(0,0,0,0.05);
+        /* --- SIDEBAR RESPONSIVE FIX --- */
+        /* Pastikan sidebar pembungkus di admin tidak menimpa isi sidebar layouts */
+        .sidebar-container { 
+            z-index: 1050;
         }
 
-        .sidebar-brand {
-            padding: 2.5rem 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+        /* Desktop Mode */
+        @media (min-width: 992px) {
+            .main-content { margin-left: var(--sidebar-width); }
         }
-
-        .nav-link { 
-            color: #94a3b8; 
-            margin: 0.35rem 1.25rem; 
-            padding: 0.85rem 1.15rem;
-            border-radius: 12px; 
-            font-size: 0.92rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-        }
-
-        .nav-link:hover { background: rgba(255, 255, 255, 0.05); color: #fff; transform: translateX(4px); }
-        .nav-link.active { 
-            background: var(--atk-blue); 
-            color: #fff; 
-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3); 
-        }
-
-        .nav-link i { font-size: 1.2rem; margin-right: 14px; }
 
         /* --- TOPBAR GLASSMORPHISM --- */
-        .main-content { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
-
         .topbar {
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(12px) saturate(180%);
@@ -98,7 +71,6 @@
             cursor: pointer;
             display: flex; align-items: center; gap: 12px;
         }
-
         .user-profile-card:hover { border-color: var(--atk-blue); transform: translateY(-1px); }
 
         .avatar-box {
@@ -115,70 +87,40 @@
             background: #10b981; border: 2.5px solid #fff; border-radius: 50%;
         }
 
-        /* --- DROPDOWN STYLING --- */
-        .dropdown-menu {
-            border: 1px solid rgba(0,0,0,0.05) !important;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
-            padding: 0.75rem !important;
-        }
-
-        .dropdown-item {
-            padding: 0.65rem 1rem !important;
-            border-radius: 10px !important;
-            font-size: 0.9rem;
-            margin-bottom: 2px;
-        }
-
-        .logout-btn {
-            background-color: rgba(220, 38, 38, 0.05) !important;
-            color: #dc2626 !important;
-            font-weight: 600 !important;
-        }
-
-        .logout-btn:hover {
-            background-color: rgba(220, 38, 38, 0.1) !important;
-        }
-
         /* --- CONTENT AREA --- */
         .content-wrapper { padding: 2.5rem; flex: 1; }
-
         .footer { background: #fff; border-top: 1px solid #e2e8f0; padding: 1.5rem 2.5rem; }
 
-        @media (max-width: 992px) {
-            .sidebar { transform: translateX(-100%); }
-            .main-content { margin-left: 0; }
+        @media (max-width: 768px) {
+            .topbar { padding: 0.85rem 1.25rem; }
+            .content-wrapper { padding: 1.5rem; }
         }
     </style>
 </head>
 <body>
     <div class="d-flex">
-        <aside class="sidebar d-none d-lg-block">
-            <div class="sidebar-brand text-center">
-                <div class="d-flex align-items-center justify-content-center">
-                    <div class="bg-primary p-2 rounded-3 me-2 shadow-sm">
-                        <i class="bi bi-shield-check text-white fs-4"></i>
-                    </div>
-                    <div>
-                        <span class="text-white fw-bold fs-5 d-block lh-1 tracking-tight">ATK LABS</span>
-                        <small style="font-size: 9px; color: #88a9c9;">MAINTENANCE SYSTEM</small>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="nav flex-column mt-4">
-                @include('layouts.sidebar')
-            </div>
-        </aside>
+        
+        {{-- 1. BAGIAN SIDEBAR --}}
+        {{-- Kita hilangkan tag <aside> tambahan agar tidak bentrok dengan pembungkus di layouts.sidebar --}}
+        <div class="sidebar-container">
+            @include('layouts.sidebar')
+        </div>
 
         <main class="main-content flex-grow-1">
             <header class="topbar d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 gap-md-3">
+                    
+                    {{-- Tombol Hamburger untuk Mobile --}}
+                    <button class="btn btn-light d-lg-none shadow-sm border" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+
                     <div class="page-icon d-none d-md-flex">
                         <i class="bi bi-layers-half fs-5"></i>
                     </div>
                     <div>
                         <h5 class="mb-0 fw-bold text-dark">@yield('title', 'Dashboard')</h5>
-                        <nav aria-label="breadcrumb">
+                        <nav aria-label="breadcrumb" class="d-none d-sm-block">
                             <ol class="breadcrumb mb-0" style="--bs-breadcrumb-divider: '›'; font-size: 12px;">
                                 <li class="breadcrumb-item text-muted">Aplikasi</li>
                                 <li class="breadcrumb-item active fw-semibold text-primary" aria-current="page">Unit Maintenance</li>
@@ -203,16 +145,8 @@
                     </div>
                     
                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 p-2 mt-3">
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center" href="#">
-                                <i class="bi bi-person me-3 text-muted fs-5"></i> Profil Saya
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center" href="#">
-                                <i class="bi bi-gear me-3 text-muted fs-5"></i> Pengaturan Sesi
-                            </a>
-                        </li>
+                        <li><a class="dropdown-item d-flex align-items-center" href="#"><i class="bi bi-person me-3 text-muted fs-5"></i> Profil Saya</a></li>
+                        <li><a class="dropdown-item d-flex align-items-center" href="#"><i class="bi bi-gear me-3 text-muted fs-5"></i> Pengaturan Sesi</a></li>
                         <li><hr class="dropdown-divider opacity-50"></li>
                         <li>
                             <a href="{{ route('logout') }}" class="dropdown-item logout-btn d-flex align-items-center">
@@ -227,7 +161,7 @@
                 @yield('content')
             </div>
 
-            <footer class="footer">
+            <footer class="footer mt-auto">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
                     <div class="small text-muted text-center text-md-start">
                         <strong>&copy; {{ date('Y') }} Politeknik ATK Yogyakarta.</strong>
